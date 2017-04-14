@@ -2,6 +2,7 @@ Emitter  = require 'events'
 electron = require 'electron'
 TYPE     = '__POST__'
 
+{log}    = require 'kxk'
 
 if process.type == 'renderer'
 
@@ -14,9 +15,13 @@ if process.type == 'renderer'
 
         constructor: () ->
             super()
-            @id  = remote.getCurrentWebContents().id
+            @id  = remote.getCurrentWindow().id
             @ipc = electron.ipcRenderer
-            @ipc.on TYPE, @fromMain
+            @ipc.on TYPE, (event, type, args) =>
+                args.unshift type
+                log 'ipc from main', args
+                @emit.apply @, args
+                null
             window.addEventListener 'beforeunload', @dispose
 
 
@@ -27,21 +32,17 @@ if process.type == 'renderer'
             @ipc = null
             false
 
+        toAll:       (type, args...)     -> log 'toAll',       arguments; @ipc.send TYPE, 'toAll',       type, args
+        toOthers:    (type, args...)     -> log 'toOthers',    arguments; @ipc.send TYPE, 'toOthers',    type, args
+        toMain:      (type, args...)     -> log 'toMain',      arguments; @ipc.send TYPE, 'toMain',      type, args
+        toWin:       (type, id, args...) -> log 'toWin',       arguments; @ipc.send TYPE, 'toWin',       type, args, id
+        toOtherWins: (type, args...)     -> log 'toOtherWins', arguments; @ipc.send TYPE, 'toOtherWins', type, args
+        toAllWins:   (type, args...)     -> log 'toAllWins',   arguments; @ipc.send TYPE, 'toAllWins',   type, args
+        
+        fromMain:    -> log 'fromMain', arguments; @ipc.sendSync TYPE, 'fromMain', arguments
 
-        toAll:       (type, args...)     -> @ipc.send TYPE, 'toAll',       type, args
-        toOthers:    (type, args...)     -> @ipc.send TYPE, 'toOthers',    type, args
-        toMain:      (type, args...)     -> @ipc.send TYPE, 'toMain',      type, args
-        toWin:       (type, id, args...) -> @ipc.send TYPE, 'toWin',       type, args, id
-        toOtherWins: (type, args...)     -> @ipc.send TYPE, 'toOtherWins', type, args
-        toAllWins:   (type, args...)     -> @ipc.send TYPE, 'toAllWins',   type, args
-
-
-        fromMain: (event, type, args) =>
-            args.unshift type
-            @emit.apply @, args
-            null
-
-
+        emit:        -> log 'emit', arguments ; super
+        
     module.exports = new PostRenderer()
 
 
@@ -57,46 +58,43 @@ else
         constructor: () ->
             super()
             @ipc = electron.ipcMain
-            @ipc.on TYPE, @fromWin
+            @ipc.on TYPE, (event, kind, type, args, id) =>
+                id = id or event.sender.id
+                switch kind
+                    when 'toMain'      then @sendToMain type, args
+                    when 'toAll'       then @sendToWins(type, args).sendToMain(type, args)
+                    when 'toOthers'    then @sendToWins(type, args, id).sendToMain(type, args)
+                    when 'toOtherWins' then @sendToWins type, args, id
+                    when 'toAllWins'   then @sendToWins type, args
+                    when 'toWin'       then @sendToWin  type, args, id
+                @
 
 
-        toAll:     (type, args...)     -> @sendToWins(type, args) & @sendToSelf(type, args)
+        toAll:     (type, args...)     -> @sendToWins(type, args).sendToMain(type, args)
         toWin:     (type, id, args...) -> @sendToWin  type, args, id
         toAllWins: (type, args...)     -> @sendToWins type, args
 
 
-        sendToSelf: (type, args) ->
+        sendToMain: (type, args) ->
             args = args.concat()
             args.unshift type
             @emit.apply @, args
-            null
+            @
 
 
 
                         
         sendToWins: (type, args, except) ->
-            for content in webContents.getAllWebContents()
-                content.send(TYPE, type, args) if content.id != except
-            null
+            for win in BrowserWindow.getAllWindows()
+                win.webContents.send(TYPE, type, args) if win.id != except
+            @
 
 
         sendToWin: (type, args, id) ->
             try
-                content = webContents.fromId id
-                content.send(TYPE, type, args)
-            null
-
-
-        fromWin: (event, kind, type, args, id) =>
-            id = id or event.sender.id
-            switch kind
-                when 'toMain'      then @sendToSelf type, args
-                when 'toAll'       then @sendToWins(type, args)     & @sendToSelf(type, args)
-                when 'toOthers'    then @sendToWins(type, args, id) & @sendToSelf(type, args)
-                when 'toOtherWins' then @sendToWins type, args, id
-                when 'toAllWins'   then @sendToWins type, args
-                when 'toWin'       then @sendToWin  type, args, id
-            null
+                win = BrowserWindow.fromId id
+                win.webContents.send(TYPE, type, args)
+            @
 
 
     module.exports = new PostMain()
