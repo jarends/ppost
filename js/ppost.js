@@ -10,13 +10,10 @@
 
   electron = require('electron');
 
-  webContents = electron.webContents;
-
-  remote = electron.remote;
-
   TYPE = '__POST__';
 
   if (process.type === 'renderer') {
+    remote = electron.remote;
     PostRenderer = (function(superClass) {
       extend(PostRenderer, superClass);
 
@@ -85,6 +82,7 @@
     })(Emitter);
     module.exports = new PostRenderer();
   } else {
+    webContents = electron.webContents;
     PostMain = (function(superClass) {
       extend(PostMain, superClass);
 

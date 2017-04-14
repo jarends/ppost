@@ -1,11 +1,12 @@
-Emitter     = require 'events'
-electron    = require 'electron'
-webContents = electron.webContents
-remote      = electron.remote
-TYPE        = '__POST__'
+Emitter  = require 'events'
+electron = require 'electron'
+TYPE     = '__POST__'
 
 
 if process.type == 'renderer'
+
+
+    remote = electron.remote
 
 
     class PostRenderer extends Emitter
@@ -47,6 +48,9 @@ if process.type == 'renderer'
 else
 
 
+    webContents = electron.webContents
+
+
     class PostMain extends Emitter
 
 
@@ -68,6 +72,8 @@ else
             null
 
 
+
+                        
         sendToWins: (type, args, except) ->
             for content in webContents.getAllWebContents()
                 content.send(TYPE, type, args) if content.id != except
