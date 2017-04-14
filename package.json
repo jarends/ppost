@@ -1,0 +1,26 @@
+{
+    "name": "ppost",
+    "version": "0.0.1",
+    "description": "A simple central event emitter for electron, which can also post messages from main to webcontents or from webcontents to nain or other webcontents.",
+    "main": "./js/ppost.js",
+    "scripts": {
+        "start": "coffee -c -w -o ./js ./coffee"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/jarends/ppost.git"
+    },
+    "keywords": [
+        "events",
+        "emitter",
+        "electron",
+        "main",
+        "webcontents"
+    ],
+    "author": "jarends",
+    "license": "Unlicense",
+    "bugs": {
+        "url": "https://github.com/jarends/ppost/issues"
+    },
+    "homepage": "https://github.com/jarends/ppost#readme"
+}
