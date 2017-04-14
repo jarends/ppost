@@ -22,10 +22,10 @@ A simple central event emitter for electron, which can post messages from main t
     # emitting in process, which webcontents id equals id
     ppost.toWin 'myEvent', arg0, ...
     
-    # emitting in all other webcontnts processes, but not my one
+    # emitting in all other webcontents processes, but not in my one
     ppost.toOtherWins 'myEvent', arg0, ...
     
-    # emitting in all webcontents processes, including my one, but not to main
+    # emitting in all webcontents processes, including my one, but not in main
     ppost.toAllWins 'myEvent', arg0, ...
                            
 ```  
