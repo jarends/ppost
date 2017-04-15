@@ -7,12 +7,12 @@
 
 
 Emitter  = require 'events'
-electron = require 'electron'
 POST     = '__POST__'
 
 
 if process.type == 'renderer'
 
+    electron = require 'electron'
     remote = electron.remote
     
 
@@ -70,23 +70,22 @@ else
         constructor: () ->
             super()
             @syncCallbacks = {}
-            @ipc = electron.ipcMain
-            @ipc.on POST, (event, kind, type, args, id) =>
-                id = id or event.sender.id
-                switch kind
-                    when 'toMain'      then @sendToMain type, args
-                    when 'toAll'       then @sendToWins(type, args).sendToMain(type, args)
-                    when 'toOthers'    then @sendToWins(type, args, id).sendToMain(type, args)
-                    when 'toOtherWins' then @sendToWins type, args, id
-                    when 'toAllWins'   then @sendToWins type, args
-                    when 'fromMain'
-                        return if not @syncCallbacks[type]
-                        for cb in @syncCallbacks[type]
-                            if value = cb.apply cb, args
-                                event.returnValue = value
-                                break
-                @
-
+            try
+                ipc = require('electron').ipcMain
+                ipc.on POST, (event, kind, type, args, id) =>
+                    id = id or event.sender.id
+                    switch kind
+                        when 'toMain'      then @sendToMain type, args
+                        when 'toAll'       then @sendToWins(type, args).sendToMain(type, args)
+                        when 'toOthers'    then @sendToWins(type, args, id).sendToMain(type, args)
+                        when 'toOtherWins' then @sendToWins type, args, id
+                        when 'toAllWins'   then @sendToWins type, args
+                        when 'fromMain'
+                            return if not @syncCallbacks[type]
+                            for cb in @syncCallbacks[type]
+                                if value = cb.apply cb, args
+                                    event.returnValue = value
+                                    break
 
         toAll:     (    type, args...) -> @sendToWins(type, args).sendToMain(type, args)
         toAllWins: (    type, args...) -> @sendToWins type, args
