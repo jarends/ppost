@@ -6,7 +6,6 @@
 # 000        000         0000000   0000000      000       
 
 
-{str}    = require 'kxk'
 Emitter  = require 'events'
 electron = require 'electron'
 POST     = '__POST__'
@@ -31,10 +30,7 @@ if process.type == 'renderer'
             super()
             @id  = remote.getCurrentWindow().id
             @ipc = electron.ipcRenderer
-            @ipc.on POST, (event, type, args) =>
-                args.unshift type
-                @emit.apply @, args
-                null
+            @ipc.on POST, (event, type, args) => @emit.apply @, [type].concat args
             window.addEventListener 'beforeunload', @dispose
 
 
@@ -45,17 +41,16 @@ if process.type == 'renderer'
             @ipc = null
             false
 
-        toAll:       (type, args...) -> @log arguments; @ipc.send POST, 'toAll',       type, args
-        toOthers:    (type, args...) -> @log arguments; @ipc.send POST, 'toOthers',    type, args
-        toMain:      (type, args...) -> @log arguments; @ipc.send POST, 'toMain',      type, args
-        toOtherWins: (type, args...) -> @log arguments; @ipc.send POST, 'toOtherWins', type, args
-        toAllWins:   (type, args...) -> @log arguments; @ipc.send POST, 'toAllWins',   type, args
-        toWin:       (type, args...) -> @log arguments; @emit.apply @, [type].concat args
-        fromMain:    (type, args...) -> @log arguments; @ipc.sendSync POST, 'fromMain',    type, args
 
-        log: -> #console.log str arguments
-        # emit:        -> console.log 'emit', str arguments ; super
-        
+        toAll:       (type, args...) -> @ipc.send POST, 'toAll',       type, args
+        toOthers:    (type, args...) -> @ipc.send POST, 'toOthers',    type, args
+        toMain:      (type, args...) -> @ipc.send POST, 'toMain',      type, args
+        toOtherWins: (type, args...) -> @ipc.send POST, 'toOtherWins', type, args
+        toAllWins:   (type, args...) -> @ipc.send POST, 'toAllWins',   type, args
+        toWin:       (type, args...) -> @emit.apply @, [type].concat args
+        fromMain:    (type, args...) -> @ipc.sendSync POST, 'fromMain',    type, args
+
+
     module.exports = new PostRenderer()
 
 
@@ -97,10 +92,12 @@ else
         toAllWins: (    type, args...) -> @sendToWins type, args
         toWin:     (id, type, args...) -> BrowserWindow.fromId(id)?.webContents.send POST, type, args 
 
+
         onSync: (type, cb) ->
             @syncCallbacks[type] = [] if not @syncCallbacks[type]?
             @syncCallbacks[type].push(cb) if cb not in @syncCallbacks[type]
-
+            @
+            
 
         sendToMain: (type, args) ->
             args.unshift type
@@ -112,5 +109,6 @@ else
             for win in BrowserWindow.getAllWindows()
                 win.webContents.send(POST, type, args) if win.id != except
             @
+
 
     module.exports = new PostMain()
