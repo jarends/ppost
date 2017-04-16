@@ -3,8 +3,7 @@
     bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty,
-    slice = [].slice,
-    indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+    slice = [].slice;
 
   Emitter = require('events');
 
@@ -94,7 +93,7 @@
           ipc = require('electron').ipcMain;
           ipc.on(POST, (function(_this) {
             return function(event, kind, type, args, id) {
-              var cb, i, len, ref, results, value;
+              var ref;
               id = id || event.sender.id;
               switch (kind) {
                 case 'toMain':
@@ -108,21 +107,7 @@
                 case 'toWins':
                   return _this.sendToWins(type, args);
                 case 'get':
-                  if (!_this.getCallbacks[type]) {
-                    return;
-                  }
-                  ref = _this.getCallbacks[type];
-                  results = [];
-                  for (i = 0, len = ref.length; i < len; i++) {
-                    cb = ref[i];
-                    if (value = cb.apply(cb, args)) {
-                      event.returnValue = value;
-                      break;
-                    } else {
-                      results.push(void 0);
-                    }
-                  }
-                  return results;
+                  return event.returnValue = (ref = _this.getCallbacks[type]) != null ? ref.apply(_this.getCallbacks[type], args) : void 0;
               }
             };
           })(this));
@@ -148,12 +133,7 @@
       };
 
       PostMain.prototype.onGet = function(type, cb) {
-        if (this.getCallbacks[type] == null) {
-          this.getCallbacks[type] = [];
-        }
-        if (indexOf.call(this.getCallbacks[type], cb) < 0) {
-          this.getCallbacks[type].push(cb);
-        }
+        this.getCallbacks[type] = cb;
         return this;
       };
 
@@ -182,5 +162,3 @@
   }
 
 }).call(this);
-
-//# sourceMappingURL=ppost.js.map

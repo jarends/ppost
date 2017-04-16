@@ -1,6 +1,6 @@
 {
   "name": "ppost",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A simple central event emitter for electron, which can also post messages from main to webcontents or from webcontents to nain or other webcontents.",
   "main": "./js/ppost.js",
   "scripts": {
