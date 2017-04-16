@@ -79,12 +79,7 @@ else
                         when 'toOthers'    then @sendToWins(type, args, id).sendToMain(type, args)
                         when 'toOtherWins' then @sendToWins type, args, id
                         when 'toWins'      then @sendToWins type, args
-                        when 'get'
-                            return if not @getCallbacks[type]
-                            for cb in @getCallbacks[type]
-                                if value = cb.apply cb, args
-                                    event.returnValue = value
-                                    break
+                        when 'get'         then event.returnValue = @getCallbacks[type]?.apply @getCallbacks[type], args
 
         toAll:     (    type, args...) -> @sendToWins(type, args).sendToMain(type, args)
         toWins:    (    type, args...) -> @sendToWins type, args
@@ -92,8 +87,7 @@ else
 
 
         onGet: (type, cb) ->
-            @getCallbacks[type] = [] if not @getCallbacks[type]?
-            @getCallbacks[type].push(cb) if cb not in @getCallbacks[type]
+            @getCallbacks[type] = cb
             @
             
 
