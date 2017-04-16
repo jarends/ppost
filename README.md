@@ -46,7 +46,7 @@ A simple central event emitter for electron, which can post messages from main t
     
 ```
   
-Many thanks to [Kodi](https://github.com/monsterkodi/) for his major improvements ;-)  
+**Many thanks to [Kodi](https://github.com/monsterkodi/) for his major improvements ;-)**  
   
 Enjoy!
 <br>  
