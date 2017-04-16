@@ -1,7 +1,7 @@
 {
   "name": "ppost",
-  "version": "0.1.1",
-  "description": "A simple central event emitter for electron"
+  "version": "0.1.2",
+  "description": "A simple central event emitter for electron",
   "main": "./js/ppost.js",
   "scripts": {
     "start": "coffee -c -w -o ./js ./coffee"
