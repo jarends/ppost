@@ -13,7 +13,7 @@ POST     = '__POST__'
 if process.type == 'renderer'
 
     electron = require 'electron'
-    remote = electron.remote
+    remote   = electron.remote
     
 
     # 000   000  000  000   000    
@@ -37,7 +37,6 @@ if process.type == 'renderer'
         dispose: () =>
             window.removeEventListener 'beforeunload', @dispose
             @ipc.removeAllListeners()
-            @win = null
             @ipc = null
 
 
@@ -81,9 +80,10 @@ else
                         when 'toWins'      then @sendToWins type, args
                         when 'get'         then event.returnValue = @getCallbacks[type]?.apply @getCallbacks[type], args
 
-        toAll:     (    type, args...) -> @sendToWins(type, args).sendToMain(type, args)
-        toWins:    (    type, args...) -> @sendToWins type, args
-        toWin:     (id, type, args...) -> require('electron').BrowserWindow.fromId(id)?.webContents.send POST, type, args 
+
+        toAll:  (    type, args...) -> @sendToWins(type, args).sendToMain(type, args)
+        toWins: (    type, args...) -> @sendToWins type, args
+        toWin:  (id, type, args...) -> require('electron').BrowserWindow.fromId(id)?.webContents.send POST, type, args
 
 
         onGet: (type, cb) ->
