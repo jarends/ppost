@@ -8,11 +8,10 @@
 
   Emitter = require('events');
 
-  electron = require('electron');
-
   POST = '__POST__';
 
   if (process.type === 'renderer') {
+    electron = require('electron');
     remote = electron.remote;
     PostRenderer = (function(superClass) {
       extend(PostRenderer, superClass);
@@ -31,11 +30,10 @@
       }
 
       PostRenderer.prototype.dispose = function() {
-        this.ipc.removeListener(POST, this.fromMain);
         window.removeEventListener('beforeunload', this.dispose);
+        this.ipc.removeAllListeners();
         this.win = null;
-        this.ipc = null;
-        return false;
+        return this.ipc = null;
       };
 
       PostRenderer.prototype.toAll = function() {
@@ -62,10 +60,10 @@
         return this.ipc.send(POST, 'toOtherWins', type, args);
       };
 
-      PostRenderer.prototype.toAllWins = function() {
+      PostRenderer.prototype.toWins = function() {
         var args, type;
         type = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
-        return this.ipc.send(POST, 'toAllWins', type, args);
+        return this.ipc.send(POST, 'toWins', type, args);
       };
 
       PostRenderer.prototype.toWin = function() {
@@ -74,10 +72,10 @@
         return this.emit.apply(this, [type].concat(args));
       };
 
-      PostRenderer.prototype.fromMain = function() {
+      PostRenderer.prototype.get = function() {
         var args, type;
         type = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
-        return this.ipc.sendSync(POST, 'fromMain', type, args);
+        return this.ipc.sendSync(POST, 'get', type, args);
       };
 
       return PostRenderer;
@@ -89,45 +87,46 @@
       extend(PostMain, superClass);
 
       function PostMain() {
+        var ipc;
         PostMain.__super__.constructor.call(this);
-        this.syncCallbacks = {};
-        this.ipc = electron.ipcMain;
-        this.ipc.on(POST, (function(_this) {
-          return function(event, kind, type, args, id) {
-            var cb, i, len, ref, value;
-            id = id || event.sender.id;
-            switch (kind) {
-              case 'toMain':
-                _this.sendToMain(type, args);
-                break;
-              case 'toAll':
-                _this.sendToWins(type, args).sendToMain(type, args);
-                break;
-              case 'toOthers':
-                _this.sendToWins(type, args, id).sendToMain(type, args);
-                break;
-              case 'toOtherWins':
-                _this.sendToWins(type, args, id);
-                break;
-              case 'toAllWins':
-                _this.sendToWins(type, args);
-                break;
-              case 'fromMain':
-                if (!_this.syncCallbacks[type]) {
-                  return;
-                }
-                ref = _this.syncCallbacks[type];
-                for (i = 0, len = ref.length; i < len; i++) {
-                  cb = ref[i];
-                  if (value = cb.apply(cb, args)) {
-                    event.returnValue = value;
-                    break;
+        this.getCallbacks = {};
+        try {
+          ipc = require('electron').ipcMain;
+          ipc.on(POST, (function(_this) {
+            return function(event, kind, type, args, id) {
+              var cb, i, len, ref, results, value;
+              id = id || event.sender.id;
+              switch (kind) {
+                case 'toMain':
+                  return _this.sendToMain(type, args);
+                case 'toAll':
+                  return _this.sendToWins(type, args).sendToMain(type, args);
+                case 'toOthers':
+                  return _this.sendToWins(type, args, id).sendToMain(type, args);
+                case 'toOtherWins':
+                  return _this.sendToWins(type, args, id);
+                case 'toWins':
+                  return _this.sendToWins(type, args);
+                case 'get':
+                  if (!_this.getCallbacks[type]) {
+                    return;
                   }
-                }
-            }
-            return _this;
-          };
-        })(this));
+                  ref = _this.getCallbacks[type];
+                  results = [];
+                  for (i = 0, len = ref.length; i < len; i++) {
+                    cb = ref[i];
+                    if (value = cb.apply(cb, args)) {
+                      event.returnValue = value;
+                      break;
+                    } else {
+                      results.push(void 0);
+                    }
+                  }
+                  return results;
+              }
+            };
+          })(this));
+        } catch (error) {}
       }
 
       PostMain.prototype.toAll = function() {
@@ -136,7 +135,7 @@
         return this.sendToWins(type, args).sendToMain(type, args);
       };
 
-      PostMain.prototype.toAllWins = function() {
+      PostMain.prototype.toWins = function() {
         var args, type;
         type = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
         return this.sendToWins(type, args);
@@ -145,15 +144,15 @@
       PostMain.prototype.toWin = function() {
         var args, id, ref, type;
         id = arguments[0], type = arguments[1], args = 3 <= arguments.length ? slice.call(arguments, 2) : [];
-        return (ref = BrowserWindow.fromId(id)) != null ? ref.webContents.send(POST, type, args) : void 0;
+        return (ref = require('electron').BrowserWindow.fromId(id)) != null ? ref.webContents.send(POST, type, args) : void 0;
       };
 
-      PostMain.prototype.onSync = function(type, cb) {
-        if (this.syncCallbacks[type] == null) {
-          this.syncCallbacks[type] = [];
+      PostMain.prototype.onGet = function(type, cb) {
+        if (this.getCallbacks[type] == null) {
+          this.getCallbacks[type] = [];
         }
-        if (indexOf.call(this.syncCallbacks[type], cb) < 0) {
-          this.syncCallbacks[type].push(cb);
+        if (indexOf.call(this.getCallbacks[type], cb) < 0) {
+          this.getCallbacks[type].push(cb);
         }
         return this;
       };
@@ -166,7 +165,7 @@
 
       PostMain.prototype.sendToWins = function(type, args, except) {
         var i, len, ref, win;
-        ref = BrowserWindow.getAllWindows();
+        ref = require('electron').BrowserWindow.getAllWindows();
         for (i = 0, len = ref.length; i < len; i++) {
           win = ref[i];
           if (win.id !== except) {

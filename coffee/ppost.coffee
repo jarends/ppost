@@ -35,20 +35,19 @@ if process.type == 'renderer'
 
 
         dispose: () =>
-            @ipc.removeListener POST, @fromMain
             window.removeEventListener 'beforeunload', @dispose
+            @ipc.removeAllListeners()
             @win = null
             @ipc = null
-            false
 
 
         toAll:       (type, args...) -> @ipc.send POST, 'toAll',       type, args
         toOthers:    (type, args...) -> @ipc.send POST, 'toOthers',    type, args
         toMain:      (type, args...) -> @ipc.send POST, 'toMain',      type, args
         toOtherWins: (type, args...) -> @ipc.send POST, 'toOtherWins', type, args
-        toAllWins:   (type, args...) -> @ipc.send POST, 'toAllWins',   type, args
+        toWins:      (type, args...) -> @ipc.send POST, 'toWins',      type, args
         toWin:       (type, args...) -> @emit.apply @, [type].concat args
-        fromMain:    (type, args...) -> @ipc.sendSync POST, 'fromMain',    type, args
+        get:         (type, args...) -> @ipc.sendSync POST, 'get',     type, args
 
 
     module.exports = new PostRenderer()
@@ -69,7 +68,7 @@ else
 
         constructor: () ->
             super()
-            @syncCallbacks = {}
+            @getCallbacks = {}
             try
                 ipc = require('electron').ipcMain
                 ipc.on POST, (event, kind, type, args, id) =>
@@ -79,22 +78,22 @@ else
                         when 'toAll'       then @sendToWins(type, args).sendToMain(type, args)
                         when 'toOthers'    then @sendToWins(type, args, id).sendToMain(type, args)
                         when 'toOtherWins' then @sendToWins type, args, id
-                        when 'toAllWins'   then @sendToWins type, args
-                        when 'fromMain'
-                            return if not @syncCallbacks[type]
-                            for cb in @syncCallbacks[type]
+                        when 'toWins'      then @sendToWins type, args
+                        when 'get'
+                            return if not @getCallbacks[type]
+                            for cb in @getCallbacks[type]
                                 if value = cb.apply cb, args
                                     event.returnValue = value
                                     break
 
         toAll:     (    type, args...) -> @sendToWins(type, args).sendToMain(type, args)
-        toAllWins: (    type, args...) -> @sendToWins type, args
-        toWin:     (id, type, args...) -> BrowserWindow.fromId(id)?.webContents.send POST, type, args 
+        toWins:    (    type, args...) -> @sendToWins type, args
+        toWin:     (id, type, args...) -> require('electron').BrowserWindow.fromId(id)?.webContents.send POST, type, args 
 
 
-        onSync: (type, cb) ->
-            @syncCallbacks[type] = [] if not @syncCallbacks[type]?
-            @syncCallbacks[type].push(cb) if cb not in @syncCallbacks[type]
+        onGet: (type, cb) ->
+            @getCallbacks[type] = [] if not @getCallbacks[type]?
+            @getCallbacks[type].push(cb) if cb not in @getCallbacks[type]
             @
             
 
@@ -105,7 +104,7 @@ else
 
                         
         sendToWins: (type, args, except) ->
-            for win in BrowserWindow.getAllWindows()
+            for win in require('electron').BrowserWindow.getAllWindows()
                 win.webContents.send(POST, type, args) if win.id != except
             @
 
