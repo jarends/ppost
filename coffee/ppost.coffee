@@ -1,12 +1,26 @@
+
+# 00000000   00000000    0000000    0000000  000000000    
+# 000   000  000   000  000   000  000          000       
+# 00000000   00000000   000   000  0000000      000       
+# 000        000        000   000       000     000       
+# 000        000         0000000   0000000      000       
+
+
 Emitter  = require 'events'
-electron = require 'electron'
-TYPE     = '__POST__'
+POST     = '__POST__'
 
 
 if process.type == 'renderer'
 
-
+    electron = require 'electron'
     remote = electron.remote
+    
+
+    # 000   000  000  000   000    
+    # 000 0 000  000  0000  000    
+    # 000000000  000  000 0 000    
+    # 000   000  000  000  0000    
+    # 00     00  000  000   000    
 
 
     class PostRenderer extends Emitter
@@ -14,32 +28,26 @@ if process.type == 'renderer'
 
         constructor: () ->
             super()
-            @id  = remote.getCurrentWebContents().id
+            @id  = remote.getCurrentWindow().id
             @ipc = electron.ipcRenderer
-            @ipc.on TYPE, @fromMain
+            @ipc.on POST, (event, type, args) => @emit.apply @, [type].concat args
             window.addEventListener 'beforeunload', @dispose
 
 
         dispose: () =>
-            @ipc.removeListener TYPE, @fromMain
             window.removeEventListener 'beforeunload', @dispose
+            @ipc.removeAllListeners()
             @win = null
             @ipc = null
-            false
 
 
-        toAll:       (type, args...)     -> @ipc.send TYPE, 'toAll',       type, args
-        toOthers:    (type, args...)     -> @ipc.send TYPE, 'toOthers',    type, args
-        toMain:      (type, args...)     -> @ipc.send TYPE, 'toMain',      type, args
-        toWin:       (type, id, args...) -> @ipc.send TYPE, 'toWin',       type, args, id
-        toOtherWins: (type, args...)     -> @ipc.send TYPE, 'toOtherWins', type, args
-        toAllWins:   (type, args...)     -> @ipc.send TYPE, 'toAllWins',   type, args
-
-
-        fromMain: (event, type, args) =>
-            args.unshift type
-            @emit.apply @, args
-            null
+        toAll:       (type, args...) -> @ipc.send POST, 'toAll',       type, args
+        toOthers:    (type, args...) -> @ipc.send POST, 'toOthers',    type, args
+        toMain:      (type, args...) -> @ipc.send POST, 'toMain',      type, args
+        toOtherWins: (type, args...) -> @ipc.send POST, 'toOtherWins', type, args
+        toWins:      (type, args...) -> @ipc.send POST, 'toWins',      type, args
+        toWin:       (type, args...) -> @emit.apply @, [type].concat args
+        get:         (type, args...) -> @ipc.sendSync POST, 'get',     type, args
 
 
     module.exports = new PostRenderer()
@@ -48,55 +56,57 @@ if process.type == 'renderer'
 else
 
 
-    webContents = electron.webContents
-
+    # 00     00   0000000   000  000   000  
+    # 000   000  000   000  000  0000  000  
+    # 000000000  000000000  000  000 0 000  
+    # 000 0 000  000   000  000  000  0000  
+    # 000   000  000   000  000  000   000  
+    
 
     class PostMain extends Emitter
 
 
         constructor: () ->
             super()
-            @ipc = electron.ipcMain
-            @ipc.on TYPE, @fromWin
+            @getCallbacks = {}
+            try
+                ipc = require('electron').ipcMain
+                ipc.on POST, (event, kind, type, args, id) =>
+                    id = id or event.sender.id
+                    switch kind
+                        when 'toMain'      then @sendToMain type, args
+                        when 'toAll'       then @sendToWins(type, args).sendToMain(type, args)
+                        when 'toOthers'    then @sendToWins(type, args, id).sendToMain(type, args)
+                        when 'toOtherWins' then @sendToWins type, args, id
+                        when 'toWins'      then @sendToWins type, args
+                        when 'get'
+                            return if not @getCallbacks[type]
+                            for cb in @getCallbacks[type]
+                                if value = cb.apply cb, args
+                                    event.returnValue = value
+                                    break
+
+        toAll:     (    type, args...) -> @sendToWins(type, args).sendToMain(type, args)
+        toWins:    (    type, args...) -> @sendToWins type, args
+        toWin:     (id, type, args...) -> require('electron').BrowserWindow.fromId(id)?.webContents.send POST, type, args 
 
 
-        toAll:     (type, args...)     -> @sendToWins(type, args) & @sendToSelf(type, args)
-        toWin:     (type, id, args...) -> @sendToWin  type, args, id
-        toAllWins: (type, args...)     -> @sendToWins type, args
+        onGet: (type, cb) ->
+            @getCallbacks[type] = [] if not @getCallbacks[type]?
+            @getCallbacks[type].push(cb) if cb not in @getCallbacks[type]
+            @
+            
 
-
-        sendToSelf: (type, args) ->
-            args = args.concat()
+        sendToMain: (type, args) ->
             args.unshift type
             @emit.apply @, args
-            null
-
-
+            @
 
                         
         sendToWins: (type, args, except) ->
-            for content in webContents.getAllWebContents()
-                content.send(TYPE, type, args) if content.id != except
-            null
-
-
-        sendToWin: (type, args, id) ->
-            try
-                content = webContents.fromId id
-                content.send(TYPE, type, args)
-            null
-
-
-        fromWin: (event, kind, type, args, id) =>
-            id = id or event.sender.id
-            switch kind
-                when 'toMain'      then @sendToSelf type, args
-                when 'toAll'       then @sendToWins(type, args)     & @sendToSelf(type, args)
-                when 'toOthers'    then @sendToWins(type, args, id) & @sendToSelf(type, args)
-                when 'toOtherWins' then @sendToWins type, args, id
-                when 'toAllWins'   then @sendToWins type, args
-                when 'toWin'       then @sendToWin  type, args, id
-            null
+            for win in require('electron').BrowserWindow.getAllWindows()
+                win.webContents.send(POST, type, args) if win.id != except
+            @
 
 
     module.exports = new PostMain()
