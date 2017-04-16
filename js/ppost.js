@@ -30,9 +30,7 @@
 
       PostRenderer.prototype.dispose = function() {
         window.removeEventListener('beforeunload', this.dispose);
-        this.ipc.removeAllListeners();
-        this.win = null;
-        return this.ipc = null;
+        return this.ipc.removeAllListeners(POST);
       };
 
       PostRenderer.prototype.toAll = function() {
