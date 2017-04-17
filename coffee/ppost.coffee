@@ -37,6 +37,7 @@ if process.type == 'renderer'
         dispose: () =>
             window.removeEventListener 'beforeunload', @dispose
             @ipc.removeAllListeners POST
+            @ipc = null
 
 
         toAll:       (type, args...) -> @ipc.send POST, 'toAll',       type, args

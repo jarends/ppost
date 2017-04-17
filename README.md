@@ -24,6 +24,9 @@ A simple central event emitter for electron, which can post messages from main t
     
     # emitting in all window processes, including this one, but not in main
     ppost.toWins 'myEvent', arg0, ...
+    
+    # sends sync to main 
+    result = ppost.get 'something', arg0, ...
                            
 ```  
   
@@ -43,6 +46,11 @@ A simple central event emitter for electron, which can post messages from main t
     
     # emitting in all window processes
     ppost.toAllWins 'myEvent', arg0, ...
+    
+    # add a callback for the renderers get method
+    ppost.onGet 'something', returnSomething
+     
+    #with returnSomething = (arg0, arg1, ...) -> 'return something sync to renderer' 
     
 ```
     
