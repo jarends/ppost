@@ -14,8 +14,9 @@
     "events",
     "emitter",
     "electron",
+    "ipc",
     "main",
-    "webcontents"
+    "BrowserWindow"
   ],
   "author": "jarends",
   "license": "Unlicense",
