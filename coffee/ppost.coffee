@@ -36,7 +36,7 @@ if process.type == 'renderer'
 
         dispose: () =>
             window.removeEventListener 'beforeunload', @dispose
-            @ipc.removeAllListeners()
+            @ipc.removeAllListeners POST
             @ipc = null
 
 
