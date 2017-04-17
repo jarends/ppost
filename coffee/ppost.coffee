@@ -40,13 +40,13 @@ if process.type == 'renderer'
             @ipc = null
 
 
-        toAll:       (type, args...) -> @ipc.send POST, 'toAll',       type, args
-        toOthers:    (type, args...) -> @ipc.send POST, 'toOthers',    type, args
-        toMain:      (type, args...) -> @ipc.send POST, 'toMain',      type, args
-        toOtherWins: (type, args...) -> @ipc.send POST, 'toOtherWins', type, args
-        toWins:      (type, args...) -> @ipc.send POST, 'toWins',      type, args
-        toWin:       (type, args...) -> @emit.apply @, [type].concat args
-        get:         (type, args...) -> @ipc.sendSync POST, 'get',     type, args
+        toAll:       (type, args...) -> @ipc.send     POST, 'toAll',       type, args
+        toOthers:    (type, args...) -> @ipc.send     POST, 'toOthers',    type, args
+        toMain:      (type, args...) -> @ipc.send     POST, 'toMain',      type, args
+        toOtherWins: (type, args...) -> @ipc.send     POST, 'toOtherWins', type, args, @id
+        toWins:      (type, args...) -> @ipc.send     POST, 'toWins',      type, args
+        toWin:   (id, type, args...) -> @ipc.send     POST, 'toWin',       type, args, id
+        get:         (type, args...) -> @ipc.sendSync POST, 'get',         type, args
 
 
     module.exports = new PostRenderer()
@@ -78,6 +78,7 @@ else
                         when 'toOthers'    then @sendToWins(type, args, id).sendToMain(type, args)
                         when 'toOtherWins' then @sendToWins type, args, id
                         when 'toWins'      then @sendToWins type, args
+                        when 'toWin'       then @toWin id, type, args
                         when 'get'         then event.returnValue = @getCallbacks[type]?.apply @getCallbacks[type], args
 
 

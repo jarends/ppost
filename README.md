@@ -7,8 +7,8 @@ A simple central event emitter for electron, which can post messages from main t
       
     ppost = require 'ppost'  
     
-    # emitting in this process only
-    ppost.toWin 'myEvent', arg0, ...
+    # emitting in process of window with id
+    ppost.toWin id, 'myEvent', arg0, ...
     
     # emitting in all processes
     ppost.toAll 'myEvent', arg0, ...
