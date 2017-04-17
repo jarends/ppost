@@ -1,6 +1,6 @@
 {
   "name": "ppost",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "A simple central event emitter for electron",
   "main": "./js/ppost.js",
   "scripts": {
