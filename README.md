@@ -51,18 +51,15 @@ A simple central event emitter for electron, which can post messages via ipc to 
 
 **Synchronous ipc**
 
-window process
+in window: get value synchronously from main process via ipc `sendSync`
 
 ```coffee
-
-    # get value synchronously from main process (ipc `sendSync`)
     result = ppost.get 'something', args...
 ```
 
-main process
+in main: add a callback for the sync `get` method
 
 ```coffee    
-    # add a callback for the sync `get` method
     ppost.onGet 'something', (args...) -> return something
 ```
     
