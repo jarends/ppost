@@ -27,10 +27,6 @@ A simple central event emitter for electron, which can post messages via ipc to 
     
     # emit in all window processes, including this one, but not in main
     ppost.toWins 'event', args...
-    
-    # sends sync to main 
-    result = ppost.get 'something', args...
-                           
 ```  
   
 **Usage in main process**
@@ -50,11 +46,24 @@ A simple central event emitter for electron, which can post messages via ipc to 
     ppost.toWin id, 'event', args...
     
     # emit in all window processes
-    ppost.toAllWins 'event', args...
-    
+    ppost.toAllWins 'event', args...    
+```
+
+**Synchronous ipc**
+
+window process
+
+```coffee
+
+    # get value synchronously from main process (ipc `sendSync`)
+    result = ppost.get 'something', args...
+```
+
+main process
+
+```coffee    
     # add a callback for the sync `get` method
     ppost.onGet 'something', (args...) -> return something
-    
 ```
     
 Enjoy!
