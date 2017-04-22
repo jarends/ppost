@@ -1,33 +1,32 @@
 # ppost
 
-A simple central event emitter for electron, which can post messages from main to windows or from windows to main or other windows.
+A simple central event emitter for electron, which can post messages via ipc to the main process or other windows.
   
 **Usage in renderer process**
 ```coffee
       
-    ppost = require 'ppost'  
+    ppost = require 'ppost'
     
-    # emitting in process of window with id
-    ppost.toWin id, 'myEvent', arg0, ...
+    # emit in this window (ppost extends event)
+    ppost.emit 'event', args...
+
+    # emit in process of window with id
+    ppost.toWin id, 'event', args...
     
-    # emitting in all processes
-    ppost.toAll 'myEvent', arg0, ...
+    # emit in all processes
+    ppost.toAll 'event', args...
     
-    # emitting in all other windows processes and the main process, but not in this one
-    ppost.toOthers 'myEvent', arg0, ...
+    # emit in all other windows processes and the main process, but not in this one
+    ppost.toOthers 'event', args...
     
-    # emitting in main process only
-    ppost.toMain 'myEvent', arg0, ...
+    # emit in main process only
+    ppost.toMain 'event', args...
     
-    # emitting in all other window processes, but not in this one
-    ppost.toOtherWins 'myEvent', arg0, ...
+    # emit in all other window processes, but not in this one
+    ppost.toOtherWins 'event', args...
     
-    # emitting in all window processes, including this one, but not in main
-    ppost.toWins 'myEvent', arg0, ...
-    
-    # sends sync to main 
-    result = ppost.get 'something', arg0, ...
-                           
+    # emit in all window processes, including this one, but not in main
+    ppost.toWins 'event', args...
 ```  
   
 **Usage in main process**
@@ -35,25 +34,37 @@ A simple central event emitter for electron, which can post messages from main t
 
     ppost = require 'ppost'
 
-    # emitting in main process only
-    ppost.toMain 'myEvent', arg0, ...
+    # emit in main process only
+    ppost.toMain 'event', args... 
+    # or 
+    ppost.emit 'event', args...
     
-    # emitting in all processes
-    ppost.toAll 'myEvent', arg0, ...
+    # emit in all processes
+    ppost.toAll 'event', args...
     
-    # emitting in process of window with id
-    ppost.toWin id, 'myEvent', arg0, ...
+    # emit in process of window with id
+    ppost.toWin id, 'event', args...
     
-    # emitting in all window processes
-    ppost.toAllWins 'myEvent', arg0, ...
-    
-    # add a callback for the renderers get method
-    ppost.onGet 'something', returnSomething
-     
-    #with returnSomething = (arg0, arg1, ...) -> 'return something sync to renderer' 
-    
+    # emit in all window processes
+    ppost.toAllWins 'event', args...    
 ```
-    
+
+**Synchronous ipc**
+
+in window: get value synchronously from main process
+
+```coffee
+    result = ppost.get 'something', args...
+```
+
+in main: add a callback for the `get` method
+
+```coffee    
+    ppost.onGet 'something', (args...) -> return something
+```
+
+<br>  
+<br>      
 Enjoy!
 <br>  
 <br>  

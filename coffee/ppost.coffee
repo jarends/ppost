@@ -30,7 +30,7 @@ if process.type == 'renderer'
             super()
             @id  = remote.getCurrentWindow().id
             @ipc = electron.ipcRenderer
-            @ipc.on POST, (event, type, args) => @emit.apply @, [type].concat args
+            @ipc.on POST, (event, type, argl) => @emit.apply @, [type].concat argl
             window.addEventListener 'beforeunload', @dispose
 
 
@@ -70,19 +70,20 @@ else
             @getCallbacks = {}
             try
                 ipc = require('electron').ipcMain
-                ipc.on POST, (event, kind, type, args, id) =>
+                ipc.on POST, (event, kind, type, argl, id) =>
                     id = id or event.sender.id
                     switch kind
-                        when 'toMain'      then @sendToMain type, args
-                        when 'toAll'       then @sendToWins(type, args).sendToMain(type, args)
-                        when 'toOthers'    then @sendToWins(type, args, id).sendToMain(type, args)
-                        when 'toOtherWins' then @sendToWins type, args, id
-                        when 'toWins'      then @sendToWins type, args
-                        when 'toWin'       then @toWin id, type, args
-                        when 'get'         then event.returnValue = @getCallbacks[type]?.apply @getCallbacks[type], args
+                        when 'toMain'      then @sendToMain type, argl
+                        when 'toAll'       then @sendToWins(type, argl).sendToMain(type, argl)
+                        when 'toOthers'    then @sendToWins(type, argl, id).sendToMain(type, argl)
+                        when 'toOtherWins' then @sendToWins type, argl, id
+                        when 'toWins'      then @sendToWins type, argl
+                        when 'toWin'       then @toWin.apply @, [id, type].concat argl
+                        when 'get'         then event.returnValue = @getCallbacks[type]?.apply @getCallbacks[type], argl
 
 
         toAll:  (    type, args...) -> @sendToWins(type, args).sendToMain(type, args)
+        toMain: (    type, args...) -> @sendToMain type, args
         toWins: (    type, args...) -> @sendToWins type, args
         toWin:  (id, type, args...) -> require('electron').BrowserWindow.fromId(id)?.webContents.send POST, type, args
 
@@ -92,15 +93,15 @@ else
             @
             
 
-        sendToMain: (type, args) ->
-            args.unshift type
-            @emit.apply @, args
+        sendToMain: (type, argl) ->
+            argl.unshift type
+            @emit.apply @, argl
             @
 
                         
-        sendToWins: (type, args, except) ->
+        sendToWins: (type, argl, except) ->
             for win in require('electron').BrowserWindow.getAllWindows()
-                win.webContents.send(POST, type, args) if win.id != except
+                win.webContents.send(POST, type, argl) if win.id != except
             @
 
 
